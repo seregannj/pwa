@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Arena AI PWA</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0a0a0a;
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+            text-align: center;
+        }
+        .loader {
+            max-width: 300px;
+            padding: 20px;
+        }
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(255,255,255,0.2);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        button {
+            margin-top: 24px;
+            background: #2c3e66;
+            border: none;
+            color: white;
+            padding: 12px 28px;
+            font-size: 1rem;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button:hover {
+            background: #3b5a8c;
+        }
+        .info {
+            font-size: 0.8rem;
+            margin-top: 32px;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="loader">
+        <div class="spinner"></div>
+        <h2>Переход в Arena AI</h2>
+        <p>Приложение откроется через мгновение...</p>
+        <button id="manualRedirect">Открыть сейчас →</button>
+        <div class="info">Приложение работает в полноэкранном режиме</div>
+    </div>
+
+    <script>
+        // Целевой сайт
+        const TARGET_URL = 'https://arena.ai';
+
+        // Автоматический редирект через 0.3 секунды (чтобы PWA успел инициализироваться)
+        setTimeout(() => {
+            window.location.href = TARGET_URL;
+        }, 300);
+
+        // Кнопка на случай, если авторедирект не сработал
+        document.getElementById('manualRedirect').onclick = () => {
+            window.location.href = TARGET_URL;
+        };
+    </script>
+
+    <!-- PWA манифест создаётся динамически + Service Worker -->
+    <script>
+        (function setupPWA() {
+            // Генерация иконок
+            function createIcon(size, text, bgColor, textColor) {
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = bgColor;
+                ctx.fillRect(0, 0, size, size);
+                ctx.fillStyle = textColor;
+                ctx.font = `bold ${size * 0.5}px "Segoe UI", system-ui, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(text, size/2, size/2);
+                return canvas.toDataURL('image/png');
+            }
+
+            const icon192 = createIcon(192, 'A', '#1a1a2e', '#ffffff');
+            const icon512 = createIcon(512, 'A', '#1a1a2e', '#ffffff');
+
+            const manifestObj = {
+                name: "Arena AI",
+                short_name: "ArenaAI",
+                description: "Быстрый доступ к arena.ai",
+                start_url: "/",          // запуск index.html → редирект
+                display: "fullscreen",
+                theme_color: "#1a1a2e",
+                background_color: "#0a0a0a",
+                icons: [
+                    { src: icon192, sizes: "192x192", type: "image/png", purpose: "any maskable" },
+                    { src: icon512, sizes: "512x512", type: "image/png", purpose: "any maskable" }
+                ]
+            };
+
+            const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' });
+            const manifestURL = URL.createObjectURL(manifestBlob);
+            const manifestLink = document.createElement('link');
+            manifestLink.rel = 'manifest';
+            manifestLink.href = manifestURL;
+            document.head.appendChild(manifestLink);
+
+            // iOS
+            const appleTouch = document.createElement('link');
+            appleTouch.rel = 'apple-touch-icon';
+            appleTouch.href = icon192;
+            document.head.appendChild(appleTouch);
+
+            // Service Worker (просто для кэширования index.html)
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js').catch( err => console.error('SW error:', err));
+            }
+        })();
+    </script>
+</body>
+</html>
